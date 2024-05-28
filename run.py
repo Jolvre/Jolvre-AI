@@ -2,16 +2,18 @@ import argparse
 import logging
 import os
 import time
+import boto3
+from botocore.exceptions import ClientError
+import uuid
+import io
 
 import numpy as np
 import rembg
 import torch
-import xatlas
 from PIL import Image
 
 from tsr.system import TSR
 from tsr.utils import remove_background, resize_foreground, save_video
-from tsr.bake_texture import bake_texture
 
 
 class Timer:
@@ -45,6 +47,8 @@ logging.basicConfig(
 )
 parser = argparse.ArgumentParser()
 parser.add_argument("image", type=str, nargs="+", help="Path to input image(s).")
+parser.add_argument("--access-key", type=str, help="Access key for S3.")
+parser.add_argument("--uuid", type=str, help="Object URL for S3.")
 parser.add_argument(
     "--device",
     default="cuda:0",
@@ -88,21 +92,10 @@ parser.add_argument(
 )
 parser.add_argument(
     "--model-save-format",
-    default="obj",
+    default="glb",
     type=str,
     choices=["obj", "glb"],
     help="Format to save the extracted mesh. Default: 'obj'",
-)
-parser.add_argument(
-    "--bake-texture",
-    action="store_true",
-    help="Bake a texture atlas for the extracted mesh, instead of vertex colors",
-)
-parser.add_argument(
-    "--texture-resolution",
-    default=2048,
-    type=int,
-    help="Texture atlas resolution, only useful with --bake-texture. Default: 2048"
 )
 parser.add_argument(
     "--render",
@@ -169,23 +162,29 @@ for i, image in enumerate(images):
         )
         timer.end("Rendering")
 
-    timer.start("Extracting mesh")
-    meshes = model.extract_mesh(scene_codes, not args.bake_texture, resolution=args.mc_resolution)
-    timer.end("Extracting mesh")
+    timer.start("Exporting mesh")
+    
+    ACCESS_KEY = args.access_key # load access key for s3
+    SECRET_KEY = "vSwr8/Pc2qvUZOJ7k3ckl5WFlkg7RKrjQJIaE2rs"
 
-    out_mesh_path = os.path.join(output_dir, str(i), f"mesh.{args.model_save_format}")
-    if args.bake_texture:
-        out_texture_path = os.path.join(output_dir, str(i), "texture.png")
+    BUCKET_NAME = "jolvrebucket"
+    REGION = "ap-northeast-3"
+    PREFIX = "exhibit/"
 
-        timer.start("Baking texture")
-        bake_output = bake_texture(meshes[0], model, scene_codes[0], args.texture_resolution)
-        timer.end("Baking texture")
+    CLIENT = boto3.client('s3', aws_access_key_id = ACCESS_KEY, aws_secret_access_key = SECRET_KEY, region_name=REGION)
 
-        timer.start("Exporting mesh and texture")
-        xatlas.export(out_mesh_path, meshes[0].vertices[bake_output["vmapping"]], bake_output["indices"], bake_output["uvs"], meshes[0].vertex_normals[bake_output["vmapping"]])
-        Image.fromarray((bake_output["colors"] * 255.0).astype(np.uint8)).transpose(Image.FLIP_TOP_BOTTOM).save(out_texture_path)
-        timer.end("Exporting mesh and texture")
-    else:
-        timer.start("Exporting mesh")
-        meshes[0].export(out_mesh_path)
-        timer.end("Exporting mesh")
+    meshes = model.extract_mesh(scene_codes, resolution=args.mc_resolution) # mesh 출력
+    mesh_bytes = meshes[0].export(file_type="glb")
+    logging.info(type(mesh_bytes))
+    
+    try:
+        # UUID = uuid.uuid4() # UUID생성
+        CLIENT.put_object(Bucket=BUCKET_NAME, Key=f"{args.uuid}.glb", Body=io.BytesIO(mesh_bytes))
+        # buckets.upload_file(mesh_bytes, f'{UUID}.glb') # S3에 저장하는 코드
+    except ClientError as e:
+        logging.error(e)
+    except:
+        logging.error("예상치 못한 에러")
+
+    meshes[0].export(os.path.join(output_dir, str(i), f"mesh.{args.model_save_format}")) # 로컬에 저장하는 코드
+    timer.end("Exporting mesh")

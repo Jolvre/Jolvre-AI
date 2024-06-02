@@ -111,7 +111,7 @@ device = args.device
 if not torch.cuda.is_available():
     device = "cpu"
 
-logging.info("Is CUDA available? "+torch.cuda.is_available())
+logging.info(f"Is CUDA available? {torch.cuda.is_available()}")
 
 timer.start("Initializing model")
 model = TSR.from_pretrained(
@@ -168,7 +168,7 @@ for i, image in enumerate(images):
     
     ACCESS_KEY = args.access_key # load access key for s3
     SECRET_KEY = "vSwr8/Pc2qvUZOJ7k3ckl5WFlkg7RKrjQJIaE2rs"
-
+            
     BUCKET_NAME = "jolvrebucket"
     REGION = "ap-northeast-3"
     PREFIX = "exhibit/"

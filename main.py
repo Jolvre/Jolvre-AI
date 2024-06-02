@@ -30,7 +30,7 @@ class ModelOut(BaseModel):
     glbUrl: str
 
 
-@app.get("/", tags=["model"])
+@app.get("/model/check", tags=["model"])
 def modelCheck():
     """
     <b>서버 체크</b>할 때 사용하는 메소드입니다.
@@ -40,14 +40,7 @@ def modelCheck():
     except:
         return {"message": "Something warning"}
 
-@app.get("/model/background", tags = ["background"])
-def getBackgroundImg():
-    """
-    # 배경 이미지 반환
-    
-    """
-
-@app.post("/", tags=["model"])
+@app.post("/model", tags=["model"])
 def model(exhibit_id, file: UploadFile = File(...)):
     """
     # 모델 실행

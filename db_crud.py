@@ -1,7 +1,7 @@
-from db_connect import Dababase
+from db_connect import Database
 import logging
 
-class CRUD(Dababase):
+class CRUD(Database):
     def updateDB(self, table, column, data, exhibit_id):
         sql = f"UPDATE {table} SET {column}='{data}' WHERE exhibit_id = '{exhibit_id}'"
         try:

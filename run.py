@@ -111,6 +111,8 @@ device = args.device
 if not torch.cuda.is_available():
     device = "cpu"
 
+logging.info("Is CUDA available? "+torch.cuda.is_available())
+
 timer.start("Initializing model")
 model = TSR.from_pretrained(
     args.pretrained_model_name_or_path,
@@ -172,7 +174,7 @@ for i, image in enumerate(images):
     PREFIX = "exhibit/"
 
     CLIENT = boto3.client('s3', aws_access_key_id = ACCESS_KEY, aws_secret_access_key = SECRET_KEY, region_name=REGION)
-
+    
     meshes = model.extract_mesh(scene_codes, resolution=args.mc_resolution) # mesh 출력
     mesh_bytes = meshes[0].export(file_type="glb")
     logging.info(type(mesh_bytes))

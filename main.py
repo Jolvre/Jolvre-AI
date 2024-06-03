@@ -65,7 +65,7 @@ def model(exhibit_id, file: UploadFile = File(...)):
     glbUrl = f"https://jolvrebucket.s3.ap-northeast-3.amazonaws.com/{UUID}.glb"
     # DB 연결
     print(f"exhibit_id = {exhibit_id}")
-    db = CRUD(host="15.152.149.181", dbname="jolvre", user="jolvre", passwd="jolvre", port=3305)
+    db = CRUD(host="15.168.106.131", dbname="jolvre", user="jolvre", passwd="jolvre", port=3305)
     db.updateDB(table="exhibit", column="image3d", data=glbUrl, exhibit_id=exhibit_id)
     print("main: Model processing exit")
 
